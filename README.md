@@ -21,6 +21,19 @@ The workflow is modular and organized for scalability and clarity.
 
 ---
 
+🧠 Model Used
+
+The model is trained on processed satellite imagery to classify and detect infrastructure damage.
+
+Model type: **Siamese U-Net**
+Input: Pre and post-disaster satellite images
+Output: Damage classification / prediction
+
+👉 Trained model can be downloaded from:
+https://drive.google.com/file/d/1KtiqfH6rE5NCh097cJShbZ0hLaGFjYkB/view?usp=drive_link
+
+---
+
 ## 🧠 Tech Stack
 
 * Python
@@ -69,6 +82,23 @@ python src/train.py
 ```bash
 python src/evaluate.py
 ```
+
+---
+
+🌐 Deployment (Streamlit)
+
+Run the Streamlit app locally:
+
+streamlit run app/projectapp.py
+
+Then open in browser:
+
+http://localhost:8501
+
+🔹 Features of Web App
+Upload satellite images
+Run damage detection
+View prediction results
 
 ---
 
