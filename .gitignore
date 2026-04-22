@@ -1,0 +1,20 @@
+# Ignore datasets
+dataset/
+processed/
+
+# Ignore notebook cache
+.ipynb_checkpoints/
+
+# Ignore model files (large)
+*.h5
+*.pt
+*.pth
+*.ckpt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db

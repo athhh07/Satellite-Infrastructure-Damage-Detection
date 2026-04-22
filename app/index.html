@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SatDamage — Satellite Infrastructure Damage Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:       #07090f;
+      --bg2:      #0b0e18;
+      --bg3:      #0f1420;
+      --border:   #151d30;
+      --border2:  #1c2d48;
+      --text:     #f1f5f9;
+      --muted:    #64748b;
+      --dim:      #334155;
+      --blue:     #3b82f6;
+      --blue-d:   #1d4ed8;
+      --blue-l:   #60a5fa;
+      --mono:     'Space Mono', monospace;
+      --sans:     'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: .4;
+    }
+    body > * { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 3rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,9,15,.88);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 1rem; font-weight: 700;
+      color: var(--blue); text-decoration: none;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none;
+      font-size: .85rem; transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-badge {
+      font-family: var(--mono);
+      font-size: .65rem; color: var(--muted);
+      border: 1px solid var(--border2);
+      border-radius: 20px; padding: .2rem .7rem;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 92vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 5rem 2rem 4rem;
+      position: relative;
+    }
+
+    /* Radial glow */
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(37,99,235,.12) 0%, transparent 70%);
+      top: 10%; left: 50%; transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .hero-tags {
+      display: flex; gap: .5rem; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 1.8rem;
+    }
+    .tag {
+      font-family: var(--mono);
+      font-size: .65rem; letter-spacing: .08em;
+      color: var(--blue-l);
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.25);
+      border-radius: 20px; padding: .2rem .75rem;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      max-width: 780px;
+      margin-bottom: 1.2rem;
+    }
+    h1 .accent { color: var(--blue); }
+
+    .hero-sub {
+      color: var(--muted);
+      max-width: 520px;
+      font-size: 1rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      font-family: var(--mono);
+      padding: .75rem 1.8rem;
+      border-radius: 10px;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-decoration: none;
+      transition: all .2s;
+      display: inline-flex; align-items: center; gap: .4rem;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--blue-d); color: #fff;
+      box-shadow: 0 0 0 0 rgba(29,78,216,0);
+    }
+    .btn-primary:hover {
+      background: #1e3a8a;
+      box-shadow: 0 8px 30px rgba(29,78,216,.4);
+    }
+    .btn-ghost {
+      border: 1px solid var(--border2); color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--blue); color: var(--blue-l); }
+
+    /* ── METRICS STRIP ── */
+    .metrics {
+      display: flex; justify-content: center;
+      gap: 0; flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .metric {
+      text-align: center; padding: 2rem 3rem;
+      border-right: 1px solid var(--border);
+      flex: 1; min-width: 140px;
+    }
+    .metric:last-child { border-right: none; }
+    .metric-val {
+      font-family: var(--mono);
+      font-size: 2rem; font-weight: 700;
+      color: var(--blue); display: block;
+    }
+    .metric-lbl {
+      font-size: .78rem; color: var(--muted);
+      margin-top: .2rem; display: block;
+    }
+
+    /* ── SECTION ── */
+    .section { max-width: 1080px; margin: 0 auto; padding: 6rem 2rem; }
+    .section + .section { border-top: 1px solid var(--border); }
+
+    .section-eyebrow {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      margin-bottom: .6rem;
+    }
+    h2 {
+      font-family: var(--mono);
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 700;
+      margin-bottom: .8rem;
+      letter-spacing: -.02em;
+    }
+    .section-sub { color: var(--muted); max-width: 500px; margin-bottom: 3rem; }
+
+    /* ── FEATURE GRID ── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+      gap: 1px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .feat-card {
+      background: var(--bg2);
+      padding: 1.8rem;
+      transition: background .2s;
+    }
+    .feat-card:hover { background: var(--bg3); }
+    .feat-icon {
+      font-size: 1.6rem; margin-bottom: .9rem; display: block;
+    }
+    .feat-card h3 {
+      font-family: var(--mono);
+      font-size: .88rem; font-weight: 700;
+      margin-bottom: .5rem; color: var(--text);
+    }
+    .feat-card p { font-size: .84rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── LEGEND ── */
+    .legend-row {
+      display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 1.5rem;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: .65rem;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: .55rem 1rem;
+      font-size: .84rem; color: var(--muted);
+      transition: border-color .2s;
+    }
+    .legend-item:hover { border-color: var(--border2); }
+    .ldot {
+      width: 12px; height: 12px;
+      border-radius: 3px; flex-shrink: 0;
+    }
+
+    /* ── PIPELINE ── */
+    .pipe-list { max-width: 660px; }
+    .pipe-item {
+      display: flex; gap: 1.2rem;
+      border-left: 1px solid var(--border2);
+      padding: 1.1rem 0 1.1rem 1.6rem;
+      position: relative;
+    }
+    .pipe-item::before {
+      content: "";
+      position: absolute; left: -5px; top: 1.5rem;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: 2px solid var(--bg);
+    }
+    .pipe-num {
+      font-family: var(--mono);
+      font-size: .65rem; font-weight: 700;
+      color: var(--blue);
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 4px;
+      padding: .15rem .45rem;
+      flex-shrink: 0; height: fit-content;
+      margin-top: .25rem;
+    }
+    .pipe-item h4 {
+      font-family: var(--mono);
+      font-size: .85rem; font-weight: 700;
+      margin-bottom: .25rem; color: var(--text);
+    }
+    .pipe-item p { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── HOW TO ── */
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+      gap: 1px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      counter-reset: howto;
+    }
+    .how-card {
+      background: var(--bg2);
+      padding: 1.6rem;
+      counter-increment: howto;
+      transition: background .2s;
+    }
+    .how-card:hover { background: var(--bg3); }
+    .how-card::before {
+      content: "0" counter(howto);
+      font-family: var(--mono);
+      font-size: .65rem; font-weight: 700;
+      color: var(--blue);
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 4px;
+      padding: .15rem .5rem;
+      display: inline-block;
+      margin-bottom: .8rem;
+    }
+    .how-card h4 {
+      font-family: var(--mono);
+      font-size: .85rem; margin-bottom: .4rem;
+    }
+    .how-card p { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── CTA ── */
+    .cta-wrap {
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 4rem 2rem;
+      text-align: center;
+      background: var(--bg2);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-wrap::before {
+      content: "";
+      position: absolute; top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(37,99,235,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-wrap h2 { margin-bottom: .7rem; }
+    .cta-wrap p  { color: var(--muted); margin-bottom: 2rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--dim);
+      font-size: .8rem;
+      font-family: var(--mono);
+      line-height: 1.9;
+    }
+
+    /* ── SCROLL ANIMATIONS ── */
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 1rem 1.2rem; }
+      .nav-links { display: none; }
+      h1 { font-size: 1.9rem; }
+      .metric { padding: 1.5rem 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">◈ SatDamage</a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#how-to-use">How to use</a>
+    <span class="nav-badge">BE · Data Science · 2025-26</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tags">
+    <span class="tag">🛰 Remote Sensing</span>
+    <span class="tag">Siamese U-Net</span>
+    <span class="tag">PyTorch</span>
+    <span class="tag">xBD Dataset</span>
+    <span class="tag">Pixel-level Segmentation</span>
+  </div>
+  <h1>
+    Detect Infrastructure<br>
+    <span class="accent">Damage</span> from Space
+  </h1>
+  <p class="hero-sub">
+    Upload a pre/post disaster satellite image pair.
+    Our model highlights damaged buildings and classifies
+    severity at the pixel level — instantly.
+  </p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="http://localhost:8501" target="_blank" id="app-btn">
+      ⟶ Launch App
+    </a>
+    <a class="btn btn-ghost" href="https://github.com" target="_blank">
+      ↗ View Code
+    </a>
+  </div>
+</section>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric">
+    <span class="metric-val">2,799</span>
+    <span class="metric-lbl">Image pairs · xBD</span>
+  </div>
+  <div class="metric">
+    <span class="metric-val">5</span>
+    <span class="metric-lbl">Damage classes</span>
+  </div>
+  <div class="metric">
+    <span class="metric-val">40–50%</span>
+    <span class="metric-lbl">Mean IoU</span>
+  </div>
+  <div class="metric">
+    <span class="metric-val">256px</span>
+    <span class="metric-lbl">Patch resolution</span>
+  </div>
+  <div class="metric">
+    <span class="metric-val">T4</span>
+    <span class="metric-lbl">GPU · Google Colab</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section reveal" id="features">
+  <div class="section-eyebrow">◈ What we built</div>
+  <h2>Key Features</h2>
+  <p class="section-sub">
+    End-to-end deep learning pipeline for satellite-based disaster damage assessment.
+  </p>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <span class="feat-icon">🧠</span>
+      <h3>Siamese U-Net</h3>
+      <p>Shared-weight encoder processes both images. Absolute difference features at every scale drive the decoder toward change detection.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🗺️</span>
+      <h3>xBD Dataset</h3>
+      <p>Real disaster events — hurricanes, earthquakes, wildfires, tsunamis — sourced from the IEEE GRSS xBD benchmark.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🎨</span>
+      <h3>Pixel-level Maps</h3>
+      <p>Every pixel classified into 5 damage levels. Colour-coded overlays make results immediately readable.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">⚡</span>
+      <h3>Fast Inference</h3>
+      <p>Results in seconds. Download the overlay PNG or damage statistics CSV for reports and analysis.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📊</span>
+      <h3>Damage Statistics</h3>
+      <p>Per-class pixel counts and percentages shown instantly alongside the prediction map.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔁</span>
+      <h3>Full Pipeline</h3>
+      <p>From raw JSON labels → mask generation → model training → evaluation → Streamlit deployment.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LEGEND -->
+<section class="section reveal" id="legend">
+  <div class="section-eyebrow">◈ Output</div>
+  <h2>Damage Severity Legend</h2>
+  <p class="section-sub">
+    Each colour represents a structural damage level detected in the post-disaster image.
+  </p>
+  <div class="legend-row">
+    <div class="legend-item"><div class="ldot" style="background:#2d3748"></div>Background — no building</div>
+    <div class="legend-item"><div class="ldot" style="background:#22c55e"></div>No damage</div>
+    <div class="legend-item"><div class="ldot" style="background:#eab308"></div>Minor damage</div>
+    <div class="legend-item"><div class="ldot" style="background:#f97316"></div>Major damage</div>
+    <div class="legend-item"><div class="ldot" style="background:#ef4444"></div>Destroyed</div>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section class="section reveal" id="pipeline">
+  <div class="section-eyebrow">◈ Architecture</div>
+  <h2>Project Pipeline</h2>
+  <p class="section-sub">Six stages from raw dataset to deployed web application.</p>
+  <div class="pipe-list">
+    <div class="pipe-item">
+      <div class="pipe-num">01</div>
+      <div>
+        <h4>Dataset preparation</h4>
+        <p>Separate pre/post images from xBD. Convert JSON polygon annotations to grayscale mask PNGs with class IDs 0–4 using Shapely.</p>
+      </div>
+    </div>
+    <div class="pipe-item">
+      <div class="pipe-num">02</div>
+      <div>
+        <h4>Preprocessing</h4>
+        <p>Resize to 256×256, ImageNet normalisation, augmentation (flips + rotations), build matched pre/post/mask triplets.</p>
+      </div>
+    </div>
+    <div class="pipe-item">
+      <div class="pipe-num">03</div>
+      <div>
+        <h4>Siamese U-Net</h4>
+        <p>Shared encoder encodes both images independently. |post − pre| difference features feed the U-Net decoder as skip connections.</p>
+      </div>
+    </div>
+    <div class="pipe-item">
+      <div class="pipe-num">04</div>
+      <div>
+        <h4>Training</h4>
+        <p>Weighted CrossEntropyLoss (background 0.2×, destroyed 4×), Adam, ReduceLROnPlateau, gradient clipping, 30 epochs on Colab T4 GPU.</p>
+      </div>
+    </div>
+    <div class="pipe-item">
+      <div class="pipe-num">05</div>
+      <div>
+        <h4>Evaluation</h4>
+        <p>Per-class IoU, mean IoU excluding background, confusion matrix, sample prediction overlays.</p>
+      </div>
+    </div>
+    <div class="pipe-item">
+      <div class="pipe-num">06</div>
+      <div>
+        <h4>Streamlit deployment</h4>
+        <p>Upload image pair → inference → colour overlay + per-class stats + CSV/PNG download in a clean dark-themed UI.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO USE -->
+<section class="section reveal" id="how-to-use">
+  <div class="section-eyebrow">◈ Usage</div>
+  <h2>How to Use</h2>
+  <p class="section-sub">Four steps to get your damage map.</p>
+  <div class="how-grid">
+    <div class="how-card">
+      <h4>Upload pre-disaster</h4>
+      <p>Choose the satellite photo taken before the disaster event.</p>
+    </div>
+    <div class="how-card">
+      <h4>Upload post-disaster</h4>
+      <p>Same geographic area photographed after the event.</p>
+    </div>
+    <div class="how-card">
+      <h4>Run detection</h4>
+      <p>Click Run — the model processes both images in seconds.</p>
+    </div>
+    <div class="how-card">
+      <h4>Download results</h4>
+      <p>Export the overlay PNG or statistics CSV for your report.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section reveal">
+  <div class="cta-wrap">
+    <h2>Ready to Detect Damage?</h2>
+    <p>Upload your satellite image pair and get a damage map in seconds.</p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="http://localhost:8501" target="_blank" id="cta-btn">
+        ⟶ Launch the App
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  Built by <strong style="color:#475569">Atharva</strong>
+  &nbsp;·&nbsp; Final Year Data Science &nbsp;·&nbsp; 2025–26<br>
+  Siamese U-Net &nbsp;·&nbsp; xBD Dataset (IEEE GRSS) &nbsp;·&nbsp; PyTorch + Streamlit
+</footer>
+
+<script>
+  // Update Streamlit URL after deployment
+  const STREAMLIT_URL = "http://localhost:8501";
+  document.querySelectorAll("#app-btn,#cta-btn").forEach(a => a.href = STREAMLIT_URL);
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(
+    entries => entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add("visible");
+        observer.unobserve(e.target);
+      }
+    }),
+    { threshold: 0.1 }
+  );
+  document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
