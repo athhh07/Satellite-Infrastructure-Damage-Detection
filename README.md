@@ -21,7 +21,7 @@ The workflow is modular and organized for scalability and clarity.
 
 ---
 
-🧠 Model Used
+## 🧠 Model Used
 
 The model is trained on processed satellite imagery to classify and detect infrastructure damage.
 
@@ -85,7 +85,7 @@ python src/evaluate.py
 
 ---
 
-🌐 Deployment (Streamlit)
+## 🌐 Deployment (Streamlit)
 
 Run the Streamlit app locally:
 
