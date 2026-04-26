@@ -1,0 +1,17 @@
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+shutil
+torch
+torchvision
+Pillow
+shapely
+streamlit
+
+# Progress bar
+tqdm
+
+# Utilities
+scipy
