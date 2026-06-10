@@ -1,17 +1,6 @@
-numpy
-pandas
-scikit-learn
-matplotlib
-seaborn
-shutil
+streamlit
 torch
 torchvision
+numpy
+pandas
 Pillow
-shapely
-streamlit
-
-# Progress bar
-tqdm
-
-# Utilities
-scipy
