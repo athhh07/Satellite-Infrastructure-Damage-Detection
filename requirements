@@ -3,4 +3,6 @@ torch
 torchvision
 numpy
 pandas
-Pillow
+pillow
+matplotlib
+seaborn
