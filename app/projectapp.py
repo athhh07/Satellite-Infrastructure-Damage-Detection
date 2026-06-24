@@ -168,7 +168,7 @@ if run_clicked:
         overlay    = make_overlay(post_img, color_mask, alpha=alpha)
         stats      = damage_stats(pred)
  
-        # ── Results ───────────────────────────────────────────
+        # ── Results ─────────────────────────────────────────
         st.subheader("📊 Results")
  
         r1, r2, r3 = st.columns(3)
