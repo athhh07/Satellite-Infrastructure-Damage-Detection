@@ -22,7 +22,7 @@ from shapely import wkt as shapely_wkt
 ### Paths / Roots
 """
 
-DATASET_ROOT = r"dataset/train"          # ← change if needed
+DATASET_ROOT = r"dataset/train"          
 IMAGES_DIR   = os.path.join(DATASET_ROOT, "images")
 LABELS_DIR   = os.path.join(DATASET_ROOT, "labels")
 
@@ -143,7 +143,7 @@ def json_to_mask(json_path, image_size=(1024, 1024)):
     with open(json_path) as f:
         data = json.load(f)
 
-    mask = Image.new("L", image_size, 0)   # grayscale, 0 = background
+    mask = Image.new("L", image_size, 0)   
     draw = ImageDraw.Draw(mask)
 
     features = data.get("features", {}).get("xy", [])
